@@ -87,6 +87,8 @@ if __name__ == "__main__":
     list_deadlocks_orphen="logs/deadlocks_orphen.list"
     list_nodeadlock="logs/nodeadlock.list"
 
+    deadlock_post_list=[]
+
     log_file_path = "logs/deadboltCleanup.log"
     logger = setup_logging(log_file_path)
 
@@ -112,9 +114,12 @@ if __name__ == "__main__":
                     write_to_file(list_deatlocks, fname)
 
                     # Delete deadlock?
+                    # No, wait for post processing 
                 else:
                     logger.warn("Orphen Deadlock: " + item)
                     write_to_file(list_deadlocks_orphen, item)
+
+                deadlock_post_list.append(item)
             else:
                 logger.debug("Non-"+bext+" extention: " + fext)
 
@@ -123,12 +128,26 @@ if __name__ == "__main__":
                 if os.path.isfile(item + bext):
                     logger.warn("Deadbolt file found for: " + item)
                     write_to_file(list_nodeadlock, item + bext)
+
                     # Delete deadbold file
-                    delete_file(item)
+                    #delete_file(item)
                 else:
                     logging.WARN("Deadbolt file NOT found for: " + item)
                     write_to_file(list_nodeadlock, item)
 
+    logger.info("*********** Post search deadlock search ***********")
+    for dl in deadlock_post_list:
+        fsplit = os.path.splitext(dl)
+        fname = fsplit[0]
+        fext = fsplit[1]
 
+        if os.path.isfile(dl):
+            if os.path.isfile(fname):
+                logger.debug("Deadlock origin found: " + fname)
 
-
+                #Delete dl file now
+                delete_file(dl)
+            else:
+                logger.warn("Orphened deadbolt: " + dl)
+        else:
+            logger.warn("Deadbolt file not found post processing: " + dl)
