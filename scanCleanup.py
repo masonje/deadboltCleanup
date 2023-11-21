@@ -80,9 +80,10 @@ def list_all_files_and_folders(directory):
     return result
 
 if __name__ == "__main__":
-    directory_path = "/run/user/1000/gvfs/smb-share:server=nas.local,share=pictures/2021"
+    directory_path = "/run/user/1000/gvfs/smb-share:server=nas.local,share=pictures"
 
     bext='.deadbolt'
+    tombstone="tombstone.txt"
     list_deatlocks="logs/deadlocks.list"
     list_deadlocks_orphen="logs/deadlocks_orphen.list"
     list_nodeadlock="logs/nodeadlock.list"
@@ -113,13 +114,15 @@ if __name__ == "__main__":
                     logger.info("Deadlock and source for: " + fname)
                     write_to_file(list_deatlocks, fname)
 
-                    # Delete deadlock?
-                    # No, wait for post processing 
                 else:
                     logger.warn("Orphen Deadlock: " + item)
                     write_to_file(list_deadlocks_orphen, item)
 
                 deadlock_post_list.append(item)
+
+            elif os.path.basename(item) == tombstone:
+                logger.debug("Skipping " + tombstone + " " + tombstone)
+                
             else:
                 logger.debug("Non-"+bext+" extention: " + fext)
 
@@ -128,9 +131,7 @@ if __name__ == "__main__":
                 if os.path.isfile(item + bext):
                     logger.warn("Deadbolt file found for: " + item)
                     write_to_file(list_nodeadlock, item + bext)
-
-                    # Delete deadbold file
-                    #delete_file(item)
+                    
                 else:
                     logging.WARN("Deadbolt file NOT found for: " + item)
                     write_to_file(list_nodeadlock, item)
@@ -142,12 +143,16 @@ if __name__ == "__main__":
         fext = fsplit[1]
 
         if os.path.isfile(dl):
-            if os.path.isfile(fname):
-                logger.debug("Deadlock origin found: " + fname)
+            bfolder = os.path.dirname(dl)
+            bname = os.path.basename(dl)
 
-                #Delete dl file now
-                delete_file(dl)
+            if os.path.isfile(fname):
+                logger.debug("Original found: " + fname)
             else:
                 logger.warn("Orphened deadbolt: " + dl)
+            
+            write_to_file(bfolder + "/" + tombstone, bname)
+            delete_file(dl)
+
         else:
             logger.warn("Deadbolt file not found post processing: " + dl)
