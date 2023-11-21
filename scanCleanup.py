@@ -1,6 +1,35 @@
 import os
 import logging
 
+
+def is_deadbolt_encrypted(file_path):
+    """
+    Check if a file is encrypted by Deadbolt based on a specific marker.
+
+    Parameters:
+    - file_path (str): The path of the file.
+
+    Returns:
+    - bool: True if the file is considered encrypted by Deadbolt, False otherwise.
+    """
+    deadbolt_marker = b"DEADBOLT"  # Replace with the actual marker
+    print("checking :" + file_path)
+    try:
+        # Read the first few bytes of the file
+        with open(file_path, 'rb') as file:
+            file_header = file.read(len(deadbolt_marker))
+
+        # Check if the marker is present at the beginning of the file
+        return file_header == deadbolt_marker
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return False
+    
+    except Exception as e:
+        print(f"Error in encrption check open {file_path}")
+        print(f"An error occurred: {e}")
+        return True
+    
 def delete_file(file_path):
     """
     Delete a file.
@@ -74,13 +103,33 @@ def list_all_files_and_folders(directory):
                         recursive_list(entry.path)
         except FileNotFoundError:
             print(f"The specified directory '{current_directory}' was not found.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            logger.error(f"An error occurred: {e}")
+            quit()
+        
 
     # Start the recursive listing
     recursive_list(directory)
     return result
 
+def tombstone_file(file_path):
+    try:
+        logger.debug("tombstone file: " + file_path)
+        bf = os.path.dirname(file_path)
+        bn = os.path.basename(file_path)
+        write_to_file(bf + "/" + tombstone, bn)
+        delete_file(file_path)
+        return True
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
+
+
+
+
 if __name__ == "__main__":
-    directory_path = "/run/user/1000/gvfs/smb-share:server=nas.local,share=pictures"
+    directory_path = "/run/user/1000/gvfs/smb-share:server=nas.local,share=pictures/2017/"
 
     bext='.deadbolt'
     tombstone="tombstone.txt"
@@ -131,9 +180,9 @@ if __name__ == "__main__":
                 if os.path.isfile(item + bext):
                     logger.warn("Deadbolt file found for: " + item)
                     write_to_file(list_nodeadlock, item + bext)
-                    
+
                 else:
-                    logging.WARN("Deadbolt file NOT found for: " + item)
+                    logging.warn("Deadbolt file NOT found for: " + item)
                     write_to_file(list_nodeadlock, item)
 
     logger.info("*********** Post search deadlock search ***********")
@@ -148,11 +197,22 @@ if __name__ == "__main__":
 
             if os.path.isfile(fname):
                 logger.debug("Original found: " + fname)
+                result = is_deadbolt_encrypted(fname)
+                if result:
+                    # file is enbrypted, toomstone it
+                    tombstone_file(fname)
+                else:
+                    logger.info("File in tact: " + fname)
+
+                # Cleanup the old deadbolt file
+                tombstone_file(dl)
+
             else:
+                # tombstone orphened deadbolt file
                 logger.warn("Orphened deadbolt: " + dl)
+                tombstone_file(bname)
             
-            write_to_file(bfolder + "/" + tombstone, bname)
-            delete_file(dl)
+            #delete_file(dl)
 
         else:
             logger.warn("Deadbolt file not found post processing: " + dl)
