@@ -106,7 +106,7 @@ def list_all_files_and_folders(directory):
         except Exception as e:
             print(f"An error occurred: {e}")
             logger.error(f"An error occurred: {e}")
-            quit()
+            #quit()
         
 
     # Start the recursive listing
@@ -125,22 +125,9 @@ def tombstone_file(file_path):
         print(f"An error occurred: {e}")
         logger.error(f"An error occurred: {e}")
 
-
-
-
-if __name__ == "__main__":
-    directory_path = "/run/user/1000/gvfs/smb-share:server=nas.local,share=pictures/2017/"
-
-    bext='.deadbolt'
-    tombstone="tombstone.txt"
-    list_deatlocks="logs/deadlocks.list"
-    list_deadlocks_orphen="logs/deadlocks_orphen.list"
-    list_nodeadlock="logs/nodeadlock.list"
+def copy_files_over(directory_path):
 
     deadlock_post_list=[]
-
-    log_file_path = "logs/deadboltCleanup.log"
-    logger = setup_logging(log_file_path)
 
     logger.info("----------------------------------")
     logger.info("Scanning: " + directory_path)
@@ -216,3 +203,28 @@ if __name__ == "__main__":
 
         else:
             logger.warn("Deadbolt file not found post processing: " + dl)
+
+
+if __name__ == "__main__":
+    directory_path = "/run/user/1000/gvfs/smb-share:server=nas.local,share=pictures"
+
+    bext='.deadbolt'
+    tombstone="tombstone.txt"
+    list_deatlocks="logs/deadlocks.list"
+    list_deadlocks_orphen="logs/deadlocks_orphen.list"
+    list_nodeadlock="logs/nodeadlock.list"
+
+
+    log_file_path = "logs/deadboltCleanup.log"
+    logger = setup_logging(log_file_path)
+
+    
+    skip_this=["@Recycle",".Trash-1000", "@Recently-Snapshot", '.syncing_db','.@QNAPCloudDriveSyncTemp_0_1']
+    items = os.listdir(directory_path)
+    directories = [item for item in items if os.path.isdir(os.path.join(directory_path, item))]
+
+
+    for d in directories:
+        if d not in skip_this:
+            print("Loading " + d)
+            copy_files_over(directory_path + "/" + d)
